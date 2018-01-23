@@ -1,16 +1,16 @@
 defmodule Peer do
-  def count(msg) do
+  def run(peers, msg) do
     receive do
-      {:hello, peers} ->
+      {:hello} ->
         if msg == 0 do
           peers = peers -- [self()]
           IO.puts ["#{inspect self()} > hello"]
 
           Enum.map(peers, fn(node) ->
-            send node, { :hello, peers ++ [self()] }
+            send node, { :hello }
           end)
         end
-        count(msg + 1)
+        run(peers, msg + 1)
     after
       1_000 ->
         IO.puts ["#{inspect self()} > msg count: #{msg}"]
@@ -18,6 +18,10 @@ defmodule Peer do
   end
 
   def start do
-    count(0)
+    receive do
+      {:bind, peers} ->
+        IO.puts ["#{inspect self()} > bind"]
+        run(peers, 0)
+    end
   end
 end
