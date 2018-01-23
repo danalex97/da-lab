@@ -8,7 +8,8 @@ defmodule Flooding do
   end
 
   def main do
-    peers = Enum.to_list(for _ <- 0..(@num-1), do: spawn(Peer, :start, []))
+    peers = Enum.to_list(for _ <- 0..(@num-1), do:
+      spawn(Peer, :start, [Enum.random(1..5)]))
 
     bind(peers, 0, [1, 6])
     bind(peers, 1, [0, 2, 3])
