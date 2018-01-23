@@ -2,7 +2,6 @@ defmodule Peer do
   def build_tree(peers, msg, children) do
     receive do
       { :parent, parent } ->
-        IO.puts "Me"
         if msg == 0 do
           peers = peers -- [self()]
           IO.puts ["#{inspect self()} > hello"]
@@ -11,15 +10,17 @@ defmodule Peer do
             send node, { :parent, self() }
           end)
 
+          IO.puts ["#{inspect self()} > ", inspect parent]
           send parent, { :ack, self() }
         end
-      {:ack, child} ->
-        IO.puts "Yooo"
+        build_tree(peers, msg + 1, children)
+      { :ack, child } ->
         children = children ++ [child]
-      run(peers, msg + 1)
-    # after
-    #   1_000 ->
-    #     IO.puts ["#{inspect self()} > msg count: #{msg}"]
+        IO.puts ["#{inspect self()} > children:", inspect children]
+        build_tree(peers, msg + 1, children)
+    after
+      1_000 ->
+        IO.puts ["#{inspect self()} > msg count: #{msg}"]
     end
   end
 
