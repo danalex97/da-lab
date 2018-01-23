@@ -3,11 +3,12 @@ defmodule SC do
   def main do
     IO.puts "Hello World"
 
-    client = spawn(Client, :start, [])
     server = spawn(Server, :start, [])
 
-    send client, { :bind, server }
-    send server, { :bind, client }
+    Enum.map(0..5, fn(_) ->
+      client = spawn(Client, :start, [])
+      send client, { :bind, server }
+    end)
   end
 
   def loop do

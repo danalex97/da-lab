@@ -8,7 +8,9 @@ defmodule Client do
   def interact(server) do
     random_sleep()
 
-    send server, { :circle, self(), 1.0 }
+    query_type = Enum.random([:circle, :square])
+
+    send server, { query_type, self(), 1.0 }
 
     receive do
     { :result, area } ->
@@ -23,7 +25,9 @@ defmodule Client do
 
     receive do
       { :bind, server } ->
-        IO.puts ["Client > ", inspect server]
+        IO.puts ["Client #{inspect self()} > ", inspect server]
+        send server, { :bind, self() }
+
         interact(server)
     end
   end
