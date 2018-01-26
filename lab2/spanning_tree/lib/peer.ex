@@ -1,8 +1,8 @@
 defmodule Peer do
-  def build_tree(peers, msg, children, accParent) do
-    receive do
+  def build_tree(peers, msg, children, parent) do
+    {parent, children} = receive do
       { :parent, parent } ->
-        if msg == 0 do
+        if parent == nil do
           peers = peers -- [self()]
           IO.puts ["#{inspect self()} > parent: " , inspect parent]
 
@@ -12,20 +12,24 @@ defmodule Peer do
 
           IO.puts ["#{inspect self()} > ", inspect parent]
           send parent, { :ack, self() }
+          parent
+        else
+          send parent, { :nack, self() }
+          parent
         end
-        accParent = if msg == 0, do: parent, else: accParent
-        build_tree(peers, msg + 1, children, accParent)
-
       { :ack, child } ->
         children = children ++ [child]
         IO.puts ["#{inspect self()} > children:", inspect children]
-        build_tree(peers, msg + 1, children, accParent)
+        {parent, children}
 
+      { :nack, child } ->
+        {parent, children}
     after
-      1_000 ->
-        IO.puts ["#{inspect self()} > msg count: #{msg}"]
-        {children, accParent}
+      1_000 -> nil
     end
+
+    build_tree(peers, msg + 1, children, parent)
+    {parent, children}
   end
 
   def delagate(value, children, parent) do
@@ -56,7 +60,7 @@ defmodule Peer do
     receive do
       {:bind, peers} ->
         IO.puts ["#{inspect self()} > bind"]
-        {children, parent} = build_tree(peers, 0, [], nil)
+        {parent, children} = build_tree(peers, 0, [], nil)
 
         :timer.sleep(:timer.seconds(1))
         IO.puts ["#{inspect self()} > multicast tree built: ", inspect {parent, children}]
