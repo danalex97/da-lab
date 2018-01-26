@@ -1,35 +1,33 @@
 defmodule Peer do
   def build_tree(peers, msg, children, parent) do
     {parent, children} = receive do
-      { :parent, parent } ->
+      { :parent, rec_parent } ->
         if parent == nil do
-          peers = peers -- [self()]
-          IO.puts ["#{inspect self()} > parent: " , inspect parent]
+          IO.puts ["#{inspect self()} > parent: " , inspect rec_parent]
 
-          Enum.map(peers, fn(node) ->
+          Enum.map(peers -- [self()], fn(node) ->
             send node, { :parent, self() }
           end)
 
-          IO.puts ["#{inspect self()} > ", inspect parent]
-          send parent, { :ack, self() }
-          parent
+          send rec_parent, { :ack, self() }
+          {rec_parent, children}
         else
-          send parent, { :nack, self() }
-          parent
+          send rec_parent, { :nack, self() }
+          {parent, children}
         end
       { :ack, child } ->
         children = children ++ [child]
         IO.puts ["#{inspect self()} > children:", inspect children]
         {parent, children}
 
-      { :nack, child } ->
+      { :nack, _child } ->
         {parent, children}
     after
-      1_000 -> nil
+      1_000 ->
+        {parent, children}
     end
 
     build_tree(peers, msg + 1, children, parent)
-    {parent, children}
   end
 
   def delagate(value, children, parent) do
@@ -37,7 +35,7 @@ defmodule Peer do
       send child, {:delagate, self()}
     end)
 
-    value = Enum.reduce(children, value, fn (child, acc) ->
+    value = Enum.reduce(children, value, fn (_child, acc) ->
       receive do
         {:accumulate, value} ->
           acc + value
